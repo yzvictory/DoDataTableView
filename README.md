@@ -6,8 +6,6 @@
 * 支持设置简单的样式，比如字体颜色，样式，背景色等。
   
 ##效果
-![MacDown logo](https://github.com/yzvictory/DoDataTableView/blob/master/Images/Screen1.png)
-![MacDown logo](https://github.com/yzvictory/DoDataTableView/blob/master/Images/Screen2.png)
 ![MacDown logo](https://github.com/yzvictory/DoDataTableView/blob/master/Images/show.gif)
 ##使用
 **代理方法**  
@@ -78,4 +76,5 @@
 }
 
 ```
-
+##issue
+如有bug，欢迎纠正
