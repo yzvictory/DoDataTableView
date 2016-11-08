@@ -85,13 +85,10 @@
  SectionView
  */
 @interface DoFormSectionHeaderView : DoReusableView
-@property (nonatomic, assign, readonly) NSInteger section;
-@property (nonatomic, assign, readonly) NSInteger column;
 @property (nonatomic, strong, readonly) DoIndexPath *indexPath;
 - (instancetype)initWithIdentifier:(NSString *)identifier;
 - (void)setIndexPath:(DoIndexPath *)indexPath;
-- (void)setSection:(NSInteger)section;
-- (void)setColumn:(NSInteger)column;
+
 @end
 /**
  LeftTopView

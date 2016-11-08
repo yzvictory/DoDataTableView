@@ -158,7 +158,6 @@
     }
     NSString *content = [[_rowDataArray objectAtIndex:indexPath.section] objectAtIndex:indexPath.column];
     [header setIndexPath:indexPath];
-    [header setSection:indexPath.section];
     [header setContent:content withHeaderStyle:_rowStyle];
     return header;
 }

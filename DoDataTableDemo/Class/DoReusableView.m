@@ -18,8 +18,6 @@
 }
 - (void)setContent:(NSString *)content withHeaderStyle:(DoHeaderStyle *)style
 {
-    [self setTitleColor:style.fontColor forState:UIControlStateNormal];
-    
     if([style.fontStyle isEqualToString:@"normal"])
         [self.titleLabel setFont:[UIFont systemFontOfSize:style.fontSize]];
     else if([style.fontStyle isEqualToString:@"bold"])
@@ -46,6 +44,7 @@
     {
         [title addAttribute:NSStrikethroughStyleAttributeName value:[NSNumber numberWithInteger:NSUnderlineStyleSingle] range:titleRange];
     }
+    [title addAttribute:NSForegroundColorAttributeName value:style.fontColor range:titleRange];
     [self setAttributedTitle:title forState:UIControlStateNormal];
 }
 - (void)drawRect:(CGRect)rect {

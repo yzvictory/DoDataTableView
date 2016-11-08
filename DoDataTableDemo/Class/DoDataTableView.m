@@ -79,7 +79,7 @@
 {
     [super setContent:content withHeaderStyle:style];
     if (((DoSectionHeaderStyle *)style).bgColors.count > 1) {
-        NSInteger index = self.section % 2;
+        NSInteger index = self.indexPath.section % 2;
         UIColor *bgColor = [((DoSectionHeaderStyle *)style).bgColors objectAtIndex:index];
         self.backgroundColor = bgColor;
     }
@@ -91,14 +91,6 @@
 - (void)setIndexPath:(DoIndexPath *)indexPath
 {
     _indexPath = indexPath;
-}
-- (void)setSection:(NSInteger)section
-{
-    _section = section;
-}
-- (void)setColumn:(NSInteger)column
-{
-    _column = column;
 }
 
 @end
@@ -251,7 +243,7 @@
 }
 - (void)queueReusableSectionHeader:(DoFormSectionHeaderView *)sectionHeader {
     if (sectionHeader){
-        [sectionHeader setSection:-1];
+        [sectionHeader setIndexPath:nil];
         [sectionHeader removeTarget:self action:@selector(sectionClickAction:) forControlEvents:UIControlEventTouchUpInside];
         [_reusableSectionsHeaders addObject:sectionHeader];
     }
@@ -406,7 +398,7 @@
             }
             else if ([view isKindOfClass:[DoFormSectionHeaderView class]]) {
                 DoFormSectionHeaderView*header = (DoFormSectionHeaderView *)view;
-                NSInteger column = header.column;
+                NSInteger column = header.indexPath.column;
                 CGFloat leftX = [self getWidthFromColumn:column];
                 header.frame = CGRectMake(leftX + self.contentOffset.x+self.contentInset.left, CGRectGetMinY(header.frame), CGRectGetWidth(header.frame), CGRectGetHeight(header.frame));
             } else if ([view isKindOfClass:[DoFormColumnHeaderView class]]) {
@@ -540,7 +532,6 @@
                     DoFormSectionHeaderView *header = [_fDataSource form:self sectionHeaderAtIndexPath:indexPath];
                     [header addTarget:self action:@selector(sectionClickAction:) forControlEvents:UIControlEventTouchUpInside];
                     header.frame = rect;
-                    [header setColumn:column];
                     [self insertSubview:header atIndex:1];
                     
                 }
@@ -557,7 +548,6 @@
                     DoFormSectionHeaderView *header = [_fDataSource form:self sectionHeaderAtIndexPath:indexPath];
                     [header addTarget:self action:@selector(sectionClickAction:) forControlEvents:UIControlEventTouchUpInside];
                     header.frame = rect;
-                    [header setColumn:column];
                     [self insertSubview:header atIndex:1];
                 }
             }
