@@ -57,6 +57,7 @@
 - (DoFormSectionHeaderView *)dequeueReusableSectionWithIdentifier:(NSString *)identifier;
 - (DoFormCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier;
 - (void)reloadData;
+- (void)reloadCellWithIndexPath:(DoIndexPath *)indexPath;
 
 @end
 

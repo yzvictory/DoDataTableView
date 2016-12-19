@@ -151,6 +151,7 @@
 }
 
 @end
+
 @implementation DoDataTableView
 
 - (id)init {
@@ -181,7 +182,6 @@
     longPress.minimumPressDuration = 0.8; //定义按的时间
     longPress.numberOfTouchesRequired = 1;
     [self addGestureRecognizer:longPress];
-    
     self.bounces = NO;
 }
 #pragma mark - 复用
@@ -256,9 +256,7 @@
         }
     }
 }
-- (void)columnClickAction:(DoFormColumnHeaderView *)columnView {
 
-}
 - (void)sectionClickAction:(DoFormSectionHeaderView *)sectionView {
     if (_fDelegate) {
         if ([_fDelegate respondsToSelector:@selector(form:didSelectSessionAtIndexPath:)]) {
@@ -292,6 +290,7 @@
         }
     }
 }
+#pragma  mark - 重新加载数据
 - (void)reloadData
 {
     if (!_fDataSource) {
@@ -314,7 +313,7 @@
             [(UIView *)obj removeFromSuperview];
         }
     }];
-    
+    //行数
     NSInteger numberSection = [_fDataSource numberOfSection:self];
     _numberSection = numberSection;
     NSInteger numberColumn = [_fDataSource numberOfColumn:self];
@@ -326,25 +325,76 @@
     CGFloat tempWidth;
     //求出所有的宽度
     if (style.widthArray.count > 1) {
-        for (id wid in style.widthArray) {
-            tempWidth +=[wid floatValue];
-        }
         _isMutabWidth = YES;
+        tempWidth += [self getWidthFromColumn:_numberColumn];
     }
     else
     {
         tempWidth = [[style.widthArray firstObject]floatValue] * (_numberColumn);
         _isMutabWidth = NO;
-        _width = [_fDataSource form:self widthForColumnAtColumn:0];
+        _width = [[_headerStyle.widthArray firstObject] floatValue];
     }
+    //cell高度
     _height = [_fDataSource form:self heightForRowAtSection:0];
     //滚动区域
-    self.contentSize = CGSizeMake(tempWidth, _numberSection*_height + style.height);
+    CGFloat topY = 0.0f;
+    if (self.isHeaderVisible) {
+        topY = style.height;
+    }
+    self.contentSize = CGSizeMake(tempWidth, _numberSection*_height + topY);
     
     //写在这里避免滑动多次addSubview
     [self clearUpLeftTopView];
     [self drawLeftTopView];
     [self setNeedsLayout];
+}
+
+- (void)reloadCellWithIndexPath:(DoIndexPath *)indexPath
+{
+    if (!_fDataSource) {
+#if DEBUG
+        NSLog(@"数据源为空");
+        return;
+#endif
+    }
+    __block CGRect frame;
+    __block BOOL isSectionFind = NO;
+    __block BOOL isCellFind = NO;
+    [[self subviews] enumerateObjectsUsingBlock:^(id obj, NSUInteger index, BOOL *stop) {
+        if ([obj isKindOfClass:[DoFormSectionHeaderView class]]) {
+            DoFormSectionHeaderView *headerView = (DoFormSectionHeaderView *)obj;
+            if (headerView.indexPath.section == indexPath.section && headerView.indexPath.column == indexPath.column) {
+                [self queueReusableSectionHeader:headerView];
+                frame = headerView.frame;
+                [headerView removeFromSuperview];
+                isSectionFind = YES;
+                *stop = YES;
+            }
+        } else if ([obj isKindOfClass:[DoFormCell class]]) {
+            DoFormCell *cell = (DoFormCell *)obj;
+            if (cell.indexPath.section == indexPath.section && cell.indexPath.column == indexPath.column) {
+                [self queueReusableCell:cell];
+                [cell removeFromSuperview];
+                frame = cell.frame;
+                isCellFind = YES;
+                *stop = YES;
+            }
+        }
+    }];
+    if(isSectionFind)
+    {
+        DoFormSectionHeaderView *header = [_fDataSource form:self sectionHeaderAtIndexPath:indexPath];
+        [header addTarget:self action:@selector(sectionClickAction:) forControlEvents:UIControlEventTouchUpInside];
+        header.frame = frame;
+        [self insertSubview:header atIndex:1];
+        
+    }
+    if (isCellFind) {
+        DoFormCell *cell = [_fDataSource form:self cellForColumnAtIndexPath:indexPath];
+        [cell addTarget:self action:@selector(cellClickAction:) forControlEvents:UIControlEventTouchUpInside];
+        cell.frame = frame;
+        [self insertSubview:cell atIndex:0];
+    }
 }
 - (void)layoutSubviews {
     [super layoutSubviews];
@@ -368,7 +418,8 @@
                 [cell removeFromSuperview];
             } else if ([view isKindOfClass:[DoFormSectionHeaderView class]]) {
                 DoFormSectionHeaderView*header = (DoFormSectionHeaderView *)view;
-                header.frame = CGRectMake(self.contentOffset.x+self.contentInset.left + CGRectGetMinX(header.frame), CGRectGetMinY(header.frame), CGRectGetWidth(header.frame), CGRectGetHeight(header.frame));
+                CGFloat leftX = [self getWidthFromColumn:header.indexPath.column];
+                header.frame = CGRectMake(self.contentOffset.x+self.contentInset.left + leftX, CGRectGetMinY(header.frame), CGRectGetWidth(header.frame), CGRectGetHeight(header.frame));
                 if (![self isOnScreenRect:header.frame]) {
                     [self queueReusableSectionHeader:header];
                     [header removeFromSuperview];
@@ -443,6 +494,10 @@
             continue;
         }
         for (NSInteger column = _freezeColumn; column < _numberColumn; column ++) {
+            DoIndexPath *indexPath = [DoIndexPath indexPathForSection:section inColumn:column];
+            if ([self cellIsExistWidthIndexPath:indexPath]) {
+                continue;
+            }
             CGFloat tempCurW = [self getWidthFromColumn:column];
             if (_isMutabWidth) {//多个宽度
                 CGFloat currentColW;
@@ -511,6 +566,10 @@
         }
         //冻结列
         for (NSInteger column = 0; column < _freezeColumn; column ++) {
+            DoIndexPath *indexPath = [DoIndexPath indexPathForSection:section inColumn:column];
+            if ([self viewIsExistWithIndexPath:indexPath]) {
+                continue;
+            }
             if (_isMutabWidth) {//多个宽度
                 CGFloat currentColW;
                 
@@ -592,6 +651,11 @@
     if (self.isHeaderVisible) {
         CGFloat leftX;
         for (NSInteger column = _freezeColumn; column < _numberColumn; column ++) {
+            DoIndexPath *indexPath = [DoIndexPath indexPathForSection:0 inColumn:column];
+            BOOL exist =[self viewIsExistWithIndexPath:indexPath];
+            if (exist) {
+                continue;
+            }
             //2.1有多个宽度
             if (_isMutabWidth) {
                 CGFloat currentColW;
@@ -613,6 +677,7 @@
                 CGRect rect = CGRectMake(leftX, self.contentOffset.y + self.contentInset.top, currentColW, _headerStyle.height);
                 if ([self isOnScreenRect:rect]) {
                     DoFormColumnHeaderView *header = [_fDataSource form:self columnHeaderAtColumn:column];
+                    
                     header.frame = rect;
                     [self insertSubview:header atIndex:1];
                 }
@@ -646,7 +711,37 @@
         }
     }
 }
-
+- (BOOL)viewIsExistWithIndexPath:(DoIndexPath *)indexPath
+{
+    for (UIView *view in self.subviews)
+    {
+        if ([view isKindOfClass:[DoFormColumnHeaderView class]]) {
+            if (((DoFormColumnHeaderView *)view).column == indexPath.column) {
+                return YES;
+            }
+        }
+        else if ([view isKindOfClass:[DoFormSectionHeaderView class]])
+        {
+            if (((DoFormSectionHeaderView *)view).indexPath.section == indexPath.section && ((DoFormSectionHeaderView *)view).indexPath.column == indexPath.column) {
+                return YES;
+            }
+        }
+    }
+    return NO;
+}
+- (BOOL)cellIsExistWidthIndexPath:(DoIndexPath *)indexPath
+{
+    for (UIView *view in self.subviews)
+    {
+        if([view isKindOfClass:[DoFormCell class]])
+        {
+            if (((DoFormCell *)view).indexPath.section == indexPath.section && ((DoFormCell *)view).indexPath.column == indexPath.column) {
+                return YES;
+            }
+        }
+    }
+    return NO;
+}
 - (BOOL)isOnScreenRect:(CGRect)rect {
     return CGRectIntersectsRect(rect, CGRectMake(self.contentOffset.x, self.contentOffset.y, self.frame.size.width, self.frame.size.height));
 }
